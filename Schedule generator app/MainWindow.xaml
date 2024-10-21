@@ -14,8 +14,8 @@
         <TextBox Name="TextBox2" Text="{Binding Path=R, Mode=OneWayToSource, UpdateSourceTrigger=Explicit}" HorizontalAlignment="Left" Margin="21,185,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="136" Height="40" Background="#FFFCF9C8" FontSize="24"/>
         <TextBox Name="TextBox3" Text="{Binding Path=S, Mode=OneWayToSource, UpdateSourceTrigger=Explicit}" HorizontalAlignment="Left" Margin="21,295,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="136" Height="40" Background="#FFFCF9C8" FontSize="24"/>
         <TextBlock HorizontalAlignment="Left" Margin="21,240,0,0" TextWrapping="Wrap" Text="Число площадок S   (S &gt;= N / 2)" VerticalAlignment="Top" Width="136" Height="40" FontSize="14"/>
-        <Button Content="Запуск алгоритма" Click="Run_button_click" HorizontalAlignment="Left" Margin="21,362,0,0" VerticalAlignment="Top" Width="350" Height="50" Background="#FF12ED37" FontFamily="Cascadia Mono" FontSize="20"/>
-        <Button Content="Остановка алгоритма" Click="Stop_button_click" HorizontalAlignment="Left" Margin="421,362,0,0" VerticalAlignment="Top" Height="50" Width="350" Background="#FFF62E16" FontSize="20" FontFamily="Cascadia Mono"/>
+        <Button Name="RunButton" Content="Запуск алгоритма" Click="Run_button_click" HorizontalAlignment="Left" Margin="21,362,0,0" VerticalAlignment="Top" Width="350" Height="50" Background="#FF12ED37" FontFamily="Cascadia Mono" FontSize="20"/>
+        <Button Name="StopButton" Content="Остановка алгоритма" Click="Stop_button_click" HorizontalAlignment="Left" Margin="421,362,0,0" VerticalAlignment="Top" Height="50" Width="350" Background="#FFF62E16" FontSize="20" FontFamily="Cascadia Mono"/>
         <TextBlock HorizontalAlignment="Left" Margin="196,295,0,0" TextWrapping="Wrap" Text="Значение метрики:" VerticalAlignment="Top" Width="130" Height="40" FontSize="14"/>
         <Line X1="170" Y1="0" X2="170" Y2="350" Stroke="Black" />
         <Line X1="0" Y1="350" X2="800" Y2="350" Stroke="Black" />

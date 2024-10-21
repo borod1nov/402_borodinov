@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using Borodinov.Schedule.Generator;
+using schedule_generator_lib;
 using WPF__App;
 
 namespace WPF_App
@@ -21,6 +21,7 @@ namespace WPF_App
 
         private async void Run_button_click(object sender, RoutedEventArgs e)
         {
+            RunButton.IsEnabled = false;
             int population_size = 100000;
             int num_of_mutations = 100000;
             int num_of_crossovers = 100000;
@@ -67,6 +68,7 @@ namespace WPF_App
                 });
                 k++;
             }
+            RunButton.IsEnabled = true;
         }
 
         private void Stop_button_click(object sender, RoutedEventArgs e)
