@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	<PackageId>Borodinov.Shedule.Generator</PackageId>
-	<Version>0.1.3009.000</Version>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageId>Borodinov.Schedule.Generator</PackageId>
+    <Title>Schedule Generator</Title>
+    <Version>0.2.1910</Version>
   </PropertyGroup>
 
 </Project>

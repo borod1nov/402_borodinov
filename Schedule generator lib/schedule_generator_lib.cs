@@ -1,8 +1,11 @@
-﻿namespace shedule_generator_lib
+﻿using System.Collections.Concurrent;
+
+namespace schedule_generator_lib
+
 {
     public class Schedule
     {
-        int[,] table;
+        public int[,] table;
         int N;
         int R;
         int S;
@@ -13,11 +16,12 @@
             this.N = N;
             this.R = R;
             this.S = S;
+
             for (int i = 0; i < R; i++)
                 for (int j = 0; j < N; j++)
                     table[i, j] = 0;
         }
-        
+
         public static Schedule Generate_random_schedule(int N, int R, int S)
         {
             Schedule result = new Schedule(N, R, S);
@@ -33,7 +37,7 @@
                     places[j] = j + 1;
                 Random.Shared.Shuffle(places);
 
-                for (int j = 0; j < N / 2 * 2; j=j+2)
+                for (int j = 0; j < N / 2 * 2; j = j + 2)
                 {
                     int player1 = participants[j];
                     int player2 = participants[j + 1];
@@ -76,7 +80,7 @@
         }
         public static Schedule Crossover(Schedule s1, Schedule s2)
         {
-            int N = s1.N; 
+            int N = s1.N;
             int R = s1.R;
             int S = s1.S;
             Schedule result = new Schedule(N, R, S);
@@ -88,7 +92,7 @@
             for (int i = R / 2; i < R; i++)
                 for (int j = 0; j < N; j++)
                     result.table[i, j] = s2.table[i, j];
-            
+
             return result;
         }
         public double Calculate_score()
@@ -122,21 +126,41 @@
             double b_metric = num_of_places_of_players.Average();
             return a_metric * R + b_metric;
         }
-        public void Print_schedule()
+        public static string[,] Different_view(Schedule s1)
         {
-            Console.WriteLine("\nSchedule:\n");
+            int N = s1.N;
+            int R = s1.R;
+            int S = s1.S;
+            string[,] result = new string[R, S];
             for (int i = 0; i < R; i++)
-            {
-                for (int j = 0; j < N; j++)
+                for(int j = 0; j < S; j++)
                 {
-                    if (table[i, j] != -1)
-                        Console.Write("{0}\t", table[i, j]);
+                    int first = 0;
+                    int second = 0;
+                    int count = 0;
+                    int k = 0;
+                    while ((k < N) & (count < 2))
+                    {
+                        if (s1.table[i, k] == j + 1)
+                        {
+                            if (count == 0)
+                                first = k;
+                            else if (count == 1)
+                                second = k;
+                            count++;
+                        }
+                        k++;
+                    }
+                    if (count == 0)
+                        result[i, j] = "X";
                     else
-                        Console.Write("-\t");
+                    {
+                        first++;
+                        second++;
+                        result[i, j] = first.ToString() + " vs " + second.ToString();
+                    }
                 }
-                Console.WriteLine();
-            }
-            Console.WriteLine("\nScore: {0}\n\n", this.Calculate_score());
+            return result;
         }
     }
 
@@ -148,7 +172,10 @@
         int population_size;
         int num_of_mutations;
         int num_of_crossovers;
-        List<Schedule> population;
+        public List<Schedule> population;
+        List<double> scores;
+        public Schedule best_schedule;
+        public double best_score;
 
         public Schedule_generator(int N, int R, int S, int population_size, int num_of_mutations, int num_of_crossovers)
         {
@@ -158,43 +185,77 @@
             this.population_size = population_size;
             this.num_of_mutations = num_of_mutations;
             this.num_of_crossovers = num_of_crossovers;
-            
-            population = new List<Schedule> ();
+
+            population = new List<Schedule>();
             for (int i = 0; i < population_size; i++)
                 population.Add(Schedule.Generate_random_schedule(N, R, S));
+            scores = (new double[population_size + num_of_crossovers + num_of_mutations]).ToList();
+            best_schedule = population[0];
+            best_score = 0;
         }
-        public void Add_childs()
+        public void Add_children_parallel()
         {
-            for (int i = 0; i < num_of_crossovers; i++)
+            ConcurrentBag<Schedule> child_bag = new ConcurrentBag<Schedule>();
+            Parallel.For(0, num_of_crossovers, _ =>
             {
                 Random rnd = new Random();
-                int parent1 = rnd.Next(population_size);
-                int parent2 = rnd.Next(population_size);
+                int parent1 = Random.Shared.Next(population_size);
+                int parent2 = Random.Shared.Next(population_size);
                 Schedule child = Schedule.Crossover(population[parent1], population[parent2]);
-                population.Add(child);
-            }
+                child_bag.Add(child);
+            });
+            population.AddRange(child_bag);
         }
-        public void Add_mutated()
+        public void Add_mutated_parallel()
         {
-            for (int i = 0; i < num_of_mutations; i++)
+            ConcurrentBag<Schedule> mutated_bag = new ConcurrentBag<Schedule>();
+            Parallel.For(0, num_of_mutations, _ =>
             {
                 Random rnd = new Random();
-                int to_be_mutated = rnd.Next(population_size);
+                int to_be_mutated = Random.Shared.Next(population_size + num_of_crossovers);
                 Schedule mutated = Schedule.Mutation(population[to_be_mutated]);
-                population.Add(mutated);
-            }
+                mutated_bag.Add(mutated);
+            });
+            population.AddRange(mutated_bag);
         }
-        public List<Schedule> Select_best()
+        public void Calculate_scores_parallel()
         {
-            List<Schedule> result = population.OrderByDescending(schedule => schedule.Calculate_score()).Take(population_size).ToList();
-            return result;
+            ConcurrentBag<double> scores_bag = new ConcurrentBag<double>();
+            Parallel.For(0, population.Count, i =>
+            {
+                double score = population[i].Calculate_score();
+                scores[i] = score;
+            });
         }
-        public Schedule Generate_best_schedule()
+        public List<Schedule> Tournament_selection_parallel()
         {
-            Add_childs();
-            Add_mutated();
-            population = Select_best();
-            return population[0];
+            ConcurrentBag<Schedule> result = new ConcurrentBag<Schedule>();
+            Parallel.For(0, population_size, _ =>
+            {
+                int index1 = Random.Shared.Next(population.Count);
+                int index2 = Random.Shared.Next(population.Count);
+                int index3 = Random.Shared.Next(population.Count);
+
+                int max_ind = index1;
+                if (scores[index2] > scores[index1])
+                    max_ind = index2;
+                if (scores[index3] > scores[max_ind])
+                    max_ind = index3;
+                result.Add(population[max_ind]);
+                if (scores[max_ind] > best_score)
+                {
+                    best_score = scores[max_ind];
+                    best_schedule = population[max_ind];
+                }
+            });
+            return result.ToList();
+        }
+        public void Do_one_iteration_parallel()
+        {
+            Add_children_parallel();
+            Add_mutated_parallel();
+            Calculate_scores_parallel();
+            population = Tournament_selection_parallel();
         }
     }
 }
