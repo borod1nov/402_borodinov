@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <PackageReference Include="Borodinov.Schedule.Generator" Version="0.2.1910" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 </Project>
