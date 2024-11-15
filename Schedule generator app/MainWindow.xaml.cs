@@ -119,7 +119,7 @@ namespace WPF_App
                 window.Owner = this;
                 if (window.ShowDialog() == true)
                 {
-                    Experiment? exp = db.Experiments.Find(window.Experiment_name);
+                    Experiment exp = db.Experiments.Include(e => e.population).ToList().Single(e => e.Name == window.Experiment_name);
 
                     sg = new Schedule_generator(exp!.N, exp.R, exp.S, exp.population_size, exp.num_of_mutations, exp.num_of_crossovers);
                     for (int i = 0; i < exp.population!.Count; i++)
@@ -264,7 +264,6 @@ namespace WPF_App
     class Schedule_table
     {
         public int Id { get; set; }
-        public int ExperimentId { get; set; }
         public string? table_in_json { get; set; }
         public Experiment? Experiment { get; set; }
     }
