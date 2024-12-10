@@ -1,0 +1,225 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор расписаний</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+        }
+
+        .left-section {
+            flex: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #f4f4f4;
+        }
+
+        .right-section {
+            flex: 3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #fff;
+            border-left: 1px solid #ccc;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        input[type="number"] {
+            margin: 15px 0;
+            padding: 15px;
+            width: 100%;
+            max-width: 410px;
+            font-size: 1.5rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            margin: 15px 10px;
+            padding: 20px 40px;
+            font-size: 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+        }
+
+        .button-red {
+            background-color: #FF4136;
+        }
+
+            .button-red:hover {
+                background-color: #CC342A;
+            }
+
+        .button-green {
+            background-color: #2ECC40;
+        }
+
+            .button-green:hover {
+                background-color: #28A630;
+            }
+
+        #schedule_table {
+            overflow: auto;
+            max-height: 90vh;
+            margin: 0 auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            max-width: 100%;
+            margin: 10px auto;
+        }
+
+        th, td {
+            border: 2px solid #000;
+            padding: 10px;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        td {
+            background-color: #e9f7ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="left-section">
+        <div class="container">
+            <h1>Введите параметры<br> расписания</h1>
+            <input id="N" type="number" placeholder="Число участников N">
+            <input id="R" type="number" placeholder="Число туров R">
+            <input id="S" type="number" placeholder="Число площадок S">
+            <div>
+                <button class="button-green" id="start_button">Запустить<br> алгоритм</button>
+                <button class="button-red" id="stop_button" onclick="alert('Алгоритм остановлен')">Остановить <br> алгоритм</button>
+            </div>
+        </div>
+    </div>
+    <div class="right-section">
+        <div class="container">
+            <h2>Итерация</h2>
+            <p id="iteration"></p>
+            <h2>Лучшее расписание</h2>
+            <div id="schedule_table"></div>
+            <h2>Метрика</h2>
+            <p id="score"></p>
+        </div>
+    </div>
+    <script>
+        stop_condition = false;
+        document.getElementById('stop_button').disabled = true;
+
+        document.getElementById('stop_button').addEventListener('click', async () => {
+            stop_condition = true;
+        });
+        document.getElementById('start_button').addEventListener('click', async () => {
+
+            document.getElementById('stop_button').disabled = false;
+            document.getElementById('start_button').disabled = true;
+
+            const N = document.getElementById('N').value;
+            const R = document.getElementById('R').value;
+            const S = document.getElementById('S').value;
+
+            //GET
+            var query = '/initial?N=' + N.toString() + '&R=' + R.toString() + '&S=' + S.toString();
+            var response = await fetch(query);
+            var data = await response.json();
+            var population = data.population;
+            var best_score = data.best_score;
+            
+            const num_of_steps = 60
+            for (let i = 1; i <= num_of_steps; i++)
+            {
+                    
+                //POST
+                const json = JSON.stringify({ "N": N, "R": R, "S": S, "best_score": best_score, "population": population });
+                var response = await fetch('/next', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: json
+                })
+                var data = await response.json();
+                var best_score = data.best_score;
+                var best_schedule = data.best_schedule;
+                var population = data.population;
+
+                if (stop_condition == true)
+                    break;
+
+                document.getElementById('schedule_table').innerHTML = generateTableHTML(best_schedule);
+                document.getElementById('iteration').innerHTML = i.toString() + '/' + num_of_steps.toString();
+                document.getElementById('score').innerHTML = best_score;
+                
+                //await sleep(0.5 * 1000);
+                
+            }
+            stop_condition = false;
+            document.getElementById('stop_button').disabled = true;
+            document.getElementById('start_button').disabled = false;
+        });
+
+        function generateTableHTML(array2D) {
+            let tableHTML = '<table>';
+
+            tableHTML += '<tr><th>Номер тура \\ Номер участника</th>'
+            for (let colIndex = 0; colIndex < array2D[0].length; colIndex++) {
+                tableHTML += `<th>${colIndex + 1}</th>`;
+            }
+            tableHTML += '</tr>';
+
+            array2D.forEach((row, rowIndex) => {
+                tableHTML += `<tr><th>${rowIndex + 1}</th>`;
+                row.forEach(cell => {
+                    if (cell === -1) {
+                        tableHTML += `<td>Пропускает тур</td>`;
+                    } else {
+                        tableHTML += `<td>${cell}</td>`;
+                    }
+                });
+                tableHTML += '</tr>';
+            });
+
+            tableHTML += '</table>';
+            return tableHTML;
+        }
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>
